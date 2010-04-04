@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+// comment-out to deactivate VERBOSE messages
+//#define LOG_NDEBUG 0
+
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -71,7 +74,7 @@ extern int gralloc_lock(gralloc_module_t const* module,
         int l, int t, int w, int h,
         void** vaddr);
 
-extern int gralloc_unlock(gralloc_module_t const* module, 
+extern int gralloc_unlock(gralloc_module_t const* module,
         buffer_handle_t handle);
 
 extern int gralloc_register_buffer(gralloc_module_t const* module,
@@ -98,7 +101,7 @@ struct private_module_t HAL_MODULE_INFO_SYM = {
             id: GRALLOC_HARDWARE_MODULE_ID,
             name: "Graphics Memory Allocator Module",
             author: "The Android Open Source Project",
-            methods: &gralloc_module_methods
+            methods: &gralloc_module_methods,
         },
         registerBuffer: gralloc_register_buffer,
         unregisterBuffer: gralloc_unregister_buffer,
@@ -116,7 +119,7 @@ struct private_module_t HAL_MODULE_INFO_SYM = {
     pmem_master_base: 0,
     master_phys: 0,
     gpu: -1,
-    gpu_base: 0
+    gpu_base: 0,
 };
 
 /*****************************************************************************/
@@ -167,7 +170,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev,
         }
         vaddr += bufferSize;
     }
-    
+
     hnd->base = vaddr;
     hnd->offset = vaddr - intptr_t(m->framebuffer->base);
     *pHandle = hnd;
@@ -191,8 +194,9 @@ static int init_pmem_area_locked(private_module_t* m)
 {
     int err = 0;
     int master_fd = open("/dev/pmem", O_RDWR, 0);
+    LOGE_IF(master_fd<0, "could not open pmem (%s)", strerror(errno));
     if (master_fd >= 0) {
-        
+
         size_t size;
         pmem_region region;
         if (ioctl(master_fd, PMEM_GET_TOTAL_SIZE, &region) < 0) {
@@ -202,10 +206,12 @@ static int init_pmem_area_locked(private_module_t* m)
             size = region.len;
         }
         sAllocator.setSize(size);
+        LOGD("pmem: total_size=%ld", (long)size);
 
-        void* base = mmap(0, size, 
+        void* base = mmap(0, size,
                 PROT_READ|PROT_WRITE, MAP_SHARED, master_fd, 0);
         if (base == MAP_FAILED) {
+            LOGE("pmem: unable to map total_size=%ld", (long)size);
             err = -errno;
             base = 0;
             close(master_fd);
@@ -250,15 +256,15 @@ static int init_gpu_area_locked(private_module_t* m)
             LOGE("HW3D_GET_REGIONS failed (%s)", strerror(errno));
             err = -errno;
         } else {
-            LOGD("smi: offset=%08lx, len=%08lx, phys=%p", 
-                    regions[HW3D_SMI].map_offset, 
-                    regions[HW3D_SMI].len, 
+            LOGD("smi: offset=%08lx, len=%08lx, phys=%lx",
+                    regions[HW3D_SMI].map_offset,
+                    regions[HW3D_SMI].len,
                     regions[HW3D_SMI].phys);
-            LOGD("ebi: offset=%08lx, len=%08lx, phys=%p", 
+            LOGD("ebi: offset=%08lx, len=%08lx, phys=%lx",
                     regions[HW3D_EBI].map_offset,
                     regions[HW3D_EBI].len,
                     regions[HW3D_EBI].phys);
-            LOGD("reg: offset=%08lx, len=%08lx, phys=%p", 
+            LOGD("reg: offset=%08lx, len=%08lx, phys=%lx",
                     regions[HW3D_REGS].map_offset,
                     regions[HW3D_REGS].len,
                     regions[HW3D_REGS].phys);
@@ -319,13 +325,13 @@ static int gralloc_alloc_buffer(alloc_device_t* dev,
     int lockState = 0;
 
     size = roundUpToPageSize(size);
-    
+
     if (usage & GRALLOC_USAGE_HW_TEXTURE) {
         // enable pmem in that case, so our software GL can fallback to
         // the copybit module.
         flags |= private_handle_t::PRIV_FLAGS_USES_PMEM;
     }
-    
+
     if (usage & GRALLOC_USAGE_HW_2D) {
         flags |= private_handle_t::PRIV_FLAGS_USES_PMEM;
     }
@@ -353,11 +359,11 @@ try_ashmem:
                 err = -ENOMEM;
             } else {
                 struct pmem_region sub = { offset, size };
-                
+
                 // now create the "sub-heap"
                 fd = open("/dev/pmem", O_RDWR, 0);
                 err = fd < 0 ? fd : 0;
-                
+
                 // and connect to it
                 if (err == 0)
                     err = ioctl(fd, PMEM_CONNECT, m->pmem_master);
@@ -424,9 +430,9 @@ try_ashmem:
         hnd->gpu_fd = gpu_fd;
         *pHandle = hnd;
     }
-    
+
     LOGE_IF(err, "gralloc failed err=%s", strerror(-err));
-    
+
     return err;
 }
 
@@ -440,12 +446,12 @@ static int gralloc_alloc(alloc_device_t* dev,
         return -EINVAL;
 
     size_t size, stride;
-    if (format == HAL_PIXEL_FORMAT_YCbCr_420_SP || 
-            format == HAL_PIXEL_FORMAT_YCbCr_422_SP) 
+    if (format == HAL_PIXEL_FORMAT_YCbCr_420_SP ||
+            format == HAL_PIXEL_FORMAT_YCbCr_422_SP)
     {
         // FIXME: there is no way to return the vstride
         int vstride;
-        stride = (w + 1) & ~1; 
+        stride = (w + 1) & ~1;
         switch (format) {
             case HAL_PIXEL_FORMAT_YCbCr_420_SP:
                 size = stride * h * 2;
@@ -510,14 +516,14 @@ static int gralloc_free(alloc_device_t* dev,
                 dev->common.module);
         const size_t bufferSize = m->finfo.line_length * m->info.yres;
         int index = (hnd->base - m->framebuffer->base) / bufferSize;
-        m->bufferMask &= ~(1<<index); 
-    } else { 
+        m->bufferMask &= ~(1<<index);
+    } else {
         if (hnd->flags & private_handle_t::PRIV_FLAGS_USES_PMEM) {
             if (hnd->fd >= 0) {
                 struct pmem_region sub = { hnd->offset, hnd->size };
                 int err = ioctl(hnd->fd, PMEM_UNMAP, &sub);
                 LOGE_IF(err<0, "PMEM_UNMAP failed (%s), "
-                        "fd=%d, sub.offset=%lu, sub.size=%lu",
+                        "fd=%d, sub.offset=%d, sub.size=%d",
                         strerror(errno), hnd->fd, hnd->offset, hnd->size);
                 if (err == 0) {
                     // we can't deallocate the memory in case of UNMAP failure
