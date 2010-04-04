@@ -43,8 +43,8 @@
 
 /*****************************************************************************/
 
-static SimpleBestFitAllocator sAllocator;
 
+static SimpleBestFitAllocator sAllocator;
 /*****************************************************************************/
 
 struct gralloc_context_t {
@@ -112,6 +112,7 @@ struct private_module_t HAL_MODULE_INFO_SYM = {
     currentBuffer: 0,
     pmem_master: -1,
     pmem_master_base: 0,
+    master_phys: 0
 };
 
 /*****************************************************************************/
@@ -165,6 +166,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev,
     
     hnd->base = vaddr;
     hnd->offset = vaddr - intptr_t(m->framebuffer->base);
+    hnd->phys = intptr_t(m->framebuffer->phys) + hnd->offset;
     *pHandle = hnd;
 
     return 0;
@@ -187,14 +189,9 @@ static int init_pmem_area_locked(private_module_t* m)
     int err = 0;
     int master_fd = open("/dev/pmem", O_RDWR, 0);
     if (master_fd >= 0) {
+        
         size_t size;
-        pmem_region region;
-        if (ioctl(master_fd, PMEM_GET_TOTAL_SIZE, &region) < 0) {
-            LOGE("PMEM_GET_TOTAL_SIZE failed, limp mode");
-            size = 8<<20;   // 8 MiB
-        } else {
-            size = region.len;
-        }
+        size = 23<<20;   // 23 MiB
         sAllocator.setSize(size);
 
         void* base = mmap(0, size, 
@@ -204,6 +201,14 @@ static int init_pmem_area_locked(private_module_t* m)
             base = 0;
             close(master_fd);
             master_fd = -1;
+        } else {
+            pmem_region region;
+            err = ioctl(master_fd, PMEM_GET_PHYS, &region);
+            if(err < 0) {
+                LOGE("init pmem: master ioctl failed %d", -errno);
+            } else {
+                m->master_phys = (unsigned long)region.offset;
+            }
         }
         m->pmem_master = master_fd;
         m->pmem_master_base = base;
@@ -290,7 +295,6 @@ try_ashmem:
                 // now create the "sub-heap"
                 fd = open("/dev/pmem", openFlags, 0);
                 err = fd < 0 ? fd : 0;
-                
                 // and connect to it
                 if (err == 0)
                     err = ioctl(fd, PMEM_CONNECT, m->pmem_master);
@@ -328,6 +332,11 @@ try_ashmem:
         hnd->offset = offset;
         hnd->base = int(base)+offset;
         hnd->lockState = lockState;
+        if (flags & private_handle_t::PRIV_FLAGS_USES_PMEM) {
+            private_module_t* m = reinterpret_cast<private_module_t*>(
+                    dev->common.module);
+            hnd->phys = m->master_phys + offset;
+        }
         *pHandle = hnd;
     }
     
