@@ -64,7 +64,7 @@ static uint32_t SND_DEVICE_FM_SPEAKER= 4;
 static uint32_t SND_DEVICE_FM_HEADSET= 5;
 static uint32_t SND_DEVICE_BT= 6;
 static uint32_t SND_DEVICE_BT_EC_OFF=-1;
-static uint32_t SND_DEVICE_HEADSET_AND_SPEAKER=-1;
+static uint32_t SND_DEVICE_HEADSET_AND_SPEAKER=7;
 static uint32_t SND_DEVICE_IN_S_SADC_OUT_HANDSET=9;
 static uint32_t SND_DEVICE_IN_S_SADC_OUT_SPEAKER_PHONE=10;
 static uint32_t SND_DEVICE_TTY_HEADSET=11;
@@ -89,7 +89,7 @@ static uint32_t DEVICE_TTY_HEADSET_MONO_RX = 11; //tty_headset_mono_rx
 static uint32_t DEVICE_TTY_HEADSET_MONO_TX = 12; //tty_headset_mono_tx
 static uint32_t DEVICE_BT_SCO_RX = 17; //bt_sco_rx
 static uint32_t DEVICE_BT_SCO_TX = 18; //bt_sco_tx
-
+static uint32_t DEVICE_SPEAKER_HEADSET_RX = 13; //headset_stereo_speaker_stereo_rx
 
 int dev_cnt = 0;
 const char ** name = NULL;
@@ -312,6 +312,8 @@ AudioHardware::AudioHardware() :
                 index = DEVICE_BT_SCO_RX;
             else if(strcmp((char* )name[i],"bt_sco_tx") == 0)
                 index = DEVICE_BT_SCO_TX;
+            else if(strcmp((char*)name[i],"headset_stereo_speaker_stereo_rx") == 0)
+                index = DEVICE_SPEAKER_HEADSET_RX;
             else
                 continue;
             LOGV("index = %d",index);
@@ -737,11 +739,11 @@ static status_t do_route_audio_rpc(uint32_t device,
     }
     else if(device == SND_DEVICE_TTY_VCO) {
         new_rx_device = DEVICE_TTY_HEADSET_MONO_RX;
-        new_tx_device = DEVICE_HEADSET_TX;
+        new_tx_device = DEVICE_HANDSET_TX;
         LOGV("In TTY_VCO");
     }
     else if(device == SND_DEVICE_TTY_HCO) {
-        new_rx_device = DEVICE_HEADSET_RX;
+        new_rx_device = DEVICE_HANDSET_RX;
         new_tx_device = DEVICE_TTY_HEADSET_MONO_TX;
         LOGV("In TTY_HCO");
     }
@@ -749,6 +751,11 @@ static status_t do_route_audio_rpc(uint32_t device,
         new_rx_device = DEVICE_BT_SCO_RX;
         new_tx_device = DEVICE_BT_SCO_TX;
         LOGV("In BT_HCO");
+    }
+    else if(device == SND_DEVICE_HEADSET_AND_SPEAKER) {
+        new_rx_device = DEVICE_SPEAKER_HEADSET_RX;
+        new_tx_device = DEVICE_HEADSET_TX;
+        LOGV("In DEVICE_SPEAKER_HEADSET_RX and DEVICE_HEADSET_TX");
     }
 
     if(new_rx_device != INVALID_DEVICE)
@@ -1112,6 +1119,11 @@ status_t AudioHardware::doRouting(AudioStreamInMSM72xx *input)
     if (input != NULL) {
         uint32_t inputDevice = input->devices();
         LOGI("do input routing device %x\n", inputDevice);
+        // ignore routing device information when we start a recording in voice
+        // call
+        // Recording will happen through currently active tx device
+        if(inputDevice == AudioSystem::DEVICE_IN_VOICE_CALL)
+            return NO_ERROR;
         if (inputDevice != 0) {
             if (inputDevice & AudioSystem::DEVICE_IN_BLUETOOTH_SCO_HEADSET) {
                 LOGI("Routing audio to Bluetooth PCM\n");
@@ -1332,11 +1344,6 @@ ssize_t AudioHardware::AudioStreamOutMSM72xx::write(const void* buffer, size_t b
         }
         mFd = status;
 
-        if(msm_en_device(DEV_ID(cur_rx), 1)) {
-            LOGE("msm_en_device failed for device cur_rx %d", cur_rx);
-            return 0;
-        }
-
         // configuration
         LOGV("get config");
         struct msm_audio_config config;
@@ -1387,9 +1394,14 @@ ssize_t AudioHardware::AudioStreamOutMSM72xx::write(const void* buffer, size_t b
                 LOGE("AUDIO_GET_SESSION_ID failed*********");
                 return 0;
             }
-        LOGV("dec_id = %d\n",dec_id);
+            LOGV("dec_id = %d\n",dec_id);
             if(cur_rx == INVALID_DEVICE)
                 return 0;
+            LOGV("cur_rx for pcm playback = %d",cur_rx);
+            if(msm_en_device(DEV_ID(cur_rx), 1)) {
+                LOGE("msm_en_device failed for device cur_rx %d", cur_rx);
+                return 0;
+            }
             if(msm_route_stream(PCM_PLAY, dec_id, DEV_ID(cur_rx), 1)) {
                 LOGE("msm_route_stream failed");
                 return 0;
@@ -1957,6 +1969,7 @@ ssize_t AudioHardware::AudioStreamInMSM72xx::read( void* buffer, ssize_t bytes)
             return -1;
         }
         addToTable(dec_id,cur_tx,INVALID_DEVICE,PCM_REC,true);
+        mFirstread = false;
     }
 
     if (mState < AUDIO_INPUT_STARTED) {
@@ -1976,6 +1989,11 @@ ssize_t AudioHardware::AudioStreamInMSM72xx::read( void* buffer, ssize_t bytes)
                 count -= bytesRead;
                 p += bytesRead;
                 bytes += bytesRead;
+                if(!mFirstread)
+                {
+                   mFirstread = true;
+                   break;
+                }
             } else {
                 if (errno != EAGAIN) return bytesRead;
                 mRetryCount++;
@@ -1996,6 +2014,11 @@ ssize_t AudioHardware::AudioStreamInMSM72xx::read( void* buffer, ssize_t bytes)
                    p += AMRNB_FRAME_SIZE;
                    count -= AMRNB_FRAME_SIZE;
                    bytes += AMRNB_FRAME_SIZE;
+                   if(!mFirstread)
+                   {
+                      mFirstread = true;
+                      break;
+                   }
                 }
                 else {
                     dataPtr++;
@@ -2004,12 +2027,22 @@ ssize_t AudioHardware::AudioStreamInMSM72xx::read( void* buffer, ssize_t bytes)
                        p += EVRC_FRAME_SIZE;
                        count -= EVRC_FRAME_SIZE;
                        bytes += EVRC_FRAME_SIZE;
+                       if(!mFirstread)
+                       {
+                          mFirstread = true;
+                          break;
+                       }
                     }
                     else if (mFormat == AudioSystem::QCELP){
                        memcpy(p, dataPtr, QCELP_FRAME_SIZE);
                        p += QCELP_FRAME_SIZE;
                        count -= QCELP_FRAME_SIZE;
                        bytes += QCELP_FRAME_SIZE;
+                       if(!mFirstread)
+                       {
+                          mFirstread = true;
+                          break;
+                       }
                     }
                 }
 
@@ -2045,6 +2078,11 @@ ssize_t AudioHardware::AudioStreamInMSM72xx::read( void* buffer, ssize_t bytes)
 
                 *frameSizePtr =  bytesRead;
                 (*frameCountPtr)++;
+                if(!mFirstread)
+                {
+                   mFirstread = true;
+                   break;
+                }
             }
             else if(bytesRead == 0)
             {
