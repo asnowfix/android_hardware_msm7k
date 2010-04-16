@@ -22,14 +22,26 @@
 <builder id="cdt.managedbuild.target.gnu.builder.base.1996156873" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base"/>
 <tool id="cdt.managedbuild.tool.gnu.archiver.base.334272072" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 <tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.928196801" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
-<option id="gnu.cpp.compiler.option.include.paths.73284142" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<option id="gnu.cpp.compiler.option.include.paths.73284142" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/kernel/arch-arm}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/arch-arm/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/kernel/common}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/system_core/include}&quot;"/>
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/hardware_libhardware/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/frameworks_base/include}&quot;"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1071493939" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool id="cdt.managedbuild.tool.gnu.c.compiler.base.585406304" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
-<option id="gnu.c.compiler.option.include.paths.144550935" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+<option id="gnu.c.compiler.option.include.paths.144550935" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/kernel/arch-arm}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/arch-arm/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/kernel/common}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/system_core/include}&quot;"/>
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/hardware_libhardware/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/frameworks_base/include}&quot;"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1786766691" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 </tool>
@@ -41,13 +53,29 @@
 </inputType>
 </tool>
 <tool id="cdt.managedbuild.tool.gnu.assembler.base.2027101974" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base">
-<option id="gnu.both.asm.option.include.paths.1835707111" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+<option id="gnu.both.asm.option.include.paths.1835707111" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/kernel/arch-arm}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/arch-arm/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/kernel/common}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/bionic/libc/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/system_core/include}&quot;"/>
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/hardware_libhardware/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/frameworks_base/include}&quot;"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.assembler.input.625994188" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 </tool>
 </toolChain>
 </folderInfo>
+<sourceEntries>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="boot"/>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="libaudio"/>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="libcamera2"/>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="libcopybit"/>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="libgralloc"/>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="liblights"/>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="liboverlay"/>
+<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="librpc"/>
+</sourceEntries>
 </configuration>
 </storageModule>
 <storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
