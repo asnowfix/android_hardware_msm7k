@@ -14,10 +14,13 @@
 # limitations under the License.
 #
 
-common_msm_dirs := libcopybit liblights librpc libcamera2 liboverlay
-msm7k_dirs := $(common_msm_dirs) boot libaudio libgralloc 
+# libcamera dlopen's libqcamera.so (very old msm7k)
+# libcamera2 dlopen's libmmcamera.so (new msm7k & qsd8k)
+
+common_msm_dirs := libcopybit liblights librpc liboverlay libcamera2
+msm7k_dirs := $(common_msm_dirs) boot libaudio libgralloc
 qsd8k_dirs := $(common_msm_dirs) libaudio-qsd8k libgralloc-qsd8k
-msm7x30_dirs := $(common_msm_dirs) libaudio-msm7x30 libgralloc-qsd8k 
+msm7x30_dirs := $(common_msm_dirs) libaudio-msm7x30 libgralloc-qsd8k
 
 ifeq ($(TARGET_BOARD_PLATFORM),msm7k)
     ifeq ($(BOARD_USES_QCOM_AUDIO_V2), true)

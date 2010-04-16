@@ -375,10 +375,10 @@ namespace android {
 
 #if DLOPEN_LIBQCAMERA == 1
 
-            LOGV("loading libqcamera");
-            libqcamera = ::dlopen("liboemcamera.so", RTLD_NOW);
+            LOGV("loading " LIBQCAMERA);
+            libqcamera = ::dlopen(LIBQCAMERA ".so", RTLD_NOW);
             if (!libqcamera) {
-                LOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
+                LOGE("FATAL ERROR: could not dlopen " LIBQCAMERA ".so: %s", dlerror());
                 return;
             }
   
@@ -653,7 +653,7 @@ namespace android {
 #if DLOPEN_LIBQCAMERA
             if (libqcamera) {
                 unsigned ref = ::dlclose(libqcamera);
-                LOGV("dlclose(libqcamera) refcount %d", ref);
+                LOGV("dlclose(" LIBQCAMERA ") refcount %d", ref);
             }
 #endif
             mCameraState = QCS_INIT;
