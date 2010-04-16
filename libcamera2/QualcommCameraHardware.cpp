@@ -14,8 +14,11 @@
 ** limitations under the License.
 */
 
-//#define LOG_NDEBUG 0
-#define LOG_TAG "QualcommCameraHardware"
+#define LOG_NDEBUG 0		// un-comment to activate LOGV traces
+#define LOG_NDDEBUG 0		// un-comment to activate LOGD traces
+#define LOG_NIDEBUG 0		// un-comment to activate LOGI traces
+
+#define LOG_TAG "QualcommCameraHardware."LIBMMCAMERA
 #include <utils/Log.h>
 
 #include "QualcommCameraHardware.h"
